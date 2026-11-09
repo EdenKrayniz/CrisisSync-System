@@ -1,61 +1,221 @@
 @startuml
 left to right direction
 
-' --- Primary Actors ---
-actor "System Administrator" as admin
-actor "Logistics & Resources Officer" as logistics
-actor "Dispatcher" as dispatcher
-actor "Field Commander" as commander
-actor "Field Crew Member" as crew
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam linetype polyline
 
-' --- Secondary Actors / External Systems ---
-actor "National Clearing System" as clearing <<System>>
+' ==========================================
+' PRIMARY ACTORS - HUMAN USERS
+' ==========================================
 
-' --- System Boundary ---
+actor "System Administrator" as Admin
+actor "Logistics & Resources Officer" as Logistics
+actor "Dispatcher" as Dispatcher
+actor "Field Commander" as Commander
+actor "Field Crew Member" as Crew
+
+' ==========================================
+' SYSTEM BOUNDARY
+' ==========================================
+
 rectangle "CrisisSync System" {
-    usecase "Manage Accounts & Permissions" as UC_ManageAccounts
+
+  package "Access & Administration" {
+    usecase "Log In" as UC_Login
+    usecase "Manage Accounts\nand Permissions" as UC_Accounts
     usecase "Load Initial Data" as UC_LoadData
-    usecase "Generate Reports" as UC_GenerateReports
-    usecase "Manage Resource Inventory" as UC_ManageResources
-    usecase "Open / Cancel Event" as UC_ManageEvent
-    usecase "Build Task Tree (DAG)" as UC_BuildTasks
-    usecase "Reserve Resources" as UC_Reserve
-    usecase "Auto-Allocate Resources" as UC_AutoReserve
-    usecase "Track Real-Time Status" as UC_TrackStatus
-    usecase "Report Task Completion" as UC_ReportTask
-    usecase "Report Equipment Fault" as UC_ReportFault
-    usecase "Close Event" as UC_CloseEvent
-    usecase "Process Billing Settlement" as UC_Billing
+    usecase "View Event History\nand Audit Log" as UC_Audit
+  }
+
+  package "Resource Management" {
+    usecase "Update Equipment\nMaintenance Status" as UC_Maintenance
+    usecase "Transfer Equipment\nBetween Stations" as UC_Transfer
+    usecase "Update Crew\nUnavailability" as UC_Absence
+  }
+
+  package "Event & Task Management" {
+    usecase "Open Event" as UC_Open
+    usecase "Cancel Event" as UC_CancelEvent
+    usecase "Build Task Tree" as UC_TaskTree
+    usecase "Modify Task\nDependencies" as UC_ModDeps
+    usecase "Validate Task\nDependencies" as UC_ValidateDeps
+    usecase "Cancel Task" as UC_CancelTask
+    usecase "Confirm Cascading\nCancellation" as UC_Cascade
+    usecase "Close Event" as UC_Close
+    usecase "Process Billing\nSettlement" as UC_Settlement
+    usecase "Handle Settlement\nRejection" as UC_SettlementFail
+  }
+
+  package "Allocation & Field Operations" {
+    usecase "Reserve Resource\nPackage" as UC_Reserve
+    usecase "Auto-Allocate\nResources" as UC_Auto
+    usecase "Handle Reservation\nFailure" as UC_ReserveFail
+    usecase "Replace Faulty\nEquipment" as UC_Replace
+    usecase "Track Real-Time\nEvent Status" as UC_Track
+    usecase "Report Task\nCompletion" as UC_Complete
+    usecase "Report Equipment\nFault" as UC_Fault
+    usecase "Report Shift Start\nand Availability" as UC_Shift
+    usecase "View Assigned\nTask Details" as UC_ViewTask
+  }
+
+  package "Reporting" {
+    usecase "Generate Monthly\nReports" as UC_Monthly
+    usecase "Generate Resource\nUtilization Report" as UC_Utilization
+    usecase "Generate SLA\nReport" as UC_SLA
+    usecase "View Reports" as UC_ViewReports
+  }
 }
 
-' --- UML Associations (Solid lines, NO arrows) ---
-admin -- UC_ManageAccounts
-admin -- UC_LoadData
-admin -- UC_GenerateReports
+' ==========================================
+' SECONDARY ACTORS - RIGHT SIDE
+' ==========================================
 
-logistics -- UC_ManageResources
+actor "National Clearing &\nSettlement System" as Clearing
+actor "System Clock /\nScheduler" as Scheduler
 
-dispatcher -- UC_ManageEvent
-dispatcher -- UC_BuildTasks
-dispatcher -- UC_Reserve
-dispatcher -- UC_TrackStatus
-dispatcher -- UC_CloseEvent
+' ==========================================
+' AUTHENTICATION
+' ==========================================
 
-commander -- UC_TrackStatus
-commander -- UC_ReportTask
-commander -- UC_ReportFault
+Admin -- UC_Login
+Logistics -- UC_Login
+Dispatcher -- UC_Login
+Commander -- UC_Login
+Crew -- UC_Login
 
-crew -- UC_TrackStatus
-crew -- UC_ReportFault
+' ==========================================
+' SYSTEM ADMINISTRATOR
+' ==========================================
 
-' --- External Systems Associations ---
-UC_Billing -- clearing
+Admin -- UC_Accounts
+Admin -- UC_LoadData
+Admin -- UC_Audit
+Admin -- UC_Utilization
+Admin -- UC_SLA
+Admin -- UC_ViewReports
 
-' --- Dependencies: <<include>> and <<extend>> ---
-' Closing an event strictly includes sending a billing request to the external system
-UC_CloseEvent ..> UC_Billing : <<include>>
+' ==========================================
+' LOGISTICS & RESOURCES OFFICER
+' ==========================================
 
-' Automated allocation is an optional extension of the standard manual resource reservation
-UC_AutoReserve ..> UC_Reserve : <<extend>>
+Logistics -- UC_Maintenance
+Logistics -- UC_Transfer
+Logistics -- UC_Absence
+
+' ==========================================
+' DISPATCHER
+' ==========================================
+
+Dispatcher -- UC_Open
+Dispatcher -- UC_CancelEvent
+Dispatcher -- UC_TaskTree
+Dispatcher -- UC_ModDeps
+Dispatcher -- UC_CancelTask
+Dispatcher -- UC_Reserve
+Dispatcher -- UC_Auto
+Dispatcher -- UC_Replace
+Dispatcher -- UC_Track
+Dispatcher -- UC_Close
+
+' ==========================================
+' FIELD COMMANDER
+' ==========================================
+
+Commander -- UC_Track
+Commander -- UC_Complete
+Commander -- UC_Fault
+
+' ==========================================
+' FIELD CREW MEMBER
+' ==========================================
+
+Crew -- UC_Shift
+Crew -- UC_ViewTask
+Crew -- UC_Fault
+
+' ==========================================
+' EXTERNAL ACTOR ASSOCIATIONS
+' ==========================================
+
+UC_Settlement -right- Clearing
+UC_Monthly -right- Scheduler
+
+' ==========================================
+' MANDATORY BEHAVIOR - INCLUDE
+' ==========================================
+
+' All new/modified dependencies must be checked.
+UC_TaskTree ..> UC_ValidateDeps : <<include>>
+UC_ModDeps ..> UC_ValidateDeps : <<include>>
+
+' Closing an event requires settlement.
+UC_Close ..> UC_Settlement : <<include>>
+
+' Monthly generation produces both report types.
+UC_Monthly ..> UC_Utilization : <<include>>
+UC_Monthly ..> UC_SLA : <<include>>
+
+' ==========================================
+' CONDITIONAL BEHAVIOR - EXTEND
+' ==========================================
+
+' Optional automatic selection mode.
+UC_Auto ..> UC_Reserve : <<extend>>
+
+' Reservation failure: rollback and refresh.
+UC_ReserveFail ..> UC_Reserve : <<extend>>
+
+' Confirm impact if dependent tasks will be cancelled.
+UC_Cascade ..> UC_CancelTask : <<extend>>
+
+' Failed external settlement leaves the event open.
+UC_SettlementFail ..> UC_Settlement : <<extend>>
+
+' ==========================================
+' MODEL RULES
+' ==========================================
+
+note bottom of UC_ValidateDeps
+  Reject cyclic dependencies.
+  Existing task prerequisites can be
+  modified only while the task is Blocked.
+end note
+
+note bottom of UC_Reserve
+  Task must be Ready.
+  Package includes exactly one commander.
+  Reservation is atomic: all or nothing.
+  Concurrent double booking is forbidden.
+end note
+
+note bottom of UC_Auto
+  On concurrent conflict, automatically
+  try up to two alternative candidates.
+end note
+
+note bottom of UC_CancelTask
+  Cancelling a task also cancels its
+  non-final direct and indirect dependents.
+  Reserved resources are released.
+end note
+
+note bottom of UC_Complete
+  Only the assigned commander may complete.
+  Resources are released immediately.
+  Eligible dependent tasks become Ready.
+end note
+
+note bottom of UC_Fault
+  Faulty equipment becomes unavailable.
+  Dispatcher must allocate a replacement
+  for an active task.
+end note
+
+note bottom of UC_Close
+  Allowed only when every task is
+  Completed or Cancelled.
+  Rejected settlement prevents closure.
+end note
 
 @enduml
