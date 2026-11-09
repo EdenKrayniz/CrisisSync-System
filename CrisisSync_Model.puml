@@ -68,7 +68,7 @@ rectangle "CrisisSync System" {
 }
 
 ' ==========================================
-' SECONDARY ACTORS - RIGHT SIDE
+' SECONDARY ACTORS - EXTERNAL SYSTEMS
 ' ==========================================
 
 actor "National Clearing &\nSettlement System" as Clearing
@@ -135,7 +135,7 @@ Crew -- UC_ViewTask
 Crew -- UC_Fault
 
 ' ==========================================
-' EXTERNAL ACTOR ASSOCIATIONS
+' EXTERNAL SYSTEM ASSOCIATIONS
 ' ==========================================
 
 UC_Settlement -right- Clearing
@@ -145,14 +145,11 @@ UC_Monthly -right- Scheduler
 ' MANDATORY BEHAVIOR - INCLUDE
 ' ==========================================
 
-' All new/modified dependencies must be checked.
 UC_TaskTree ..> UC_ValidateDeps : <<include>>
 UC_ModDeps ..> UC_ValidateDeps : <<include>>
 
-' Closing an event requires settlement.
 UC_Close ..> UC_Settlement : <<include>>
 
-' Monthly generation produces both report types.
 UC_Monthly ..> UC_Utilization : <<include>>
 UC_Monthly ..> UC_SLA : <<include>>
 
@@ -160,62 +157,12 @@ UC_Monthly ..> UC_SLA : <<include>>
 ' CONDITIONAL BEHAVIOR - EXTEND
 ' ==========================================
 
-' Optional automatic selection mode.
 UC_Auto ..> UC_Reserve : <<extend>>
 
-' Reservation failure: rollback and refresh.
 UC_ReserveFail ..> UC_Reserve : <<extend>>
 
-' Confirm impact if dependent tasks will be cancelled.
 UC_Cascade ..> UC_CancelTask : <<extend>>
 
-' Failed external settlement leaves the event open.
 UC_SettlementFail ..> UC_Settlement : <<extend>>
-
-' ==========================================
-' MODEL RULES
-' ==========================================
-
-note bottom of UC_ValidateDeps
-  Reject cyclic dependencies.
-  Existing task prerequisites can be
-  modified only while the task is Blocked.
-end note
-
-note bottom of UC_Reserve
-  Task must be Ready.
-  Package includes exactly one commander.
-  Reservation is atomic: all or nothing.
-  Concurrent double booking is forbidden.
-end note
-
-note bottom of UC_Auto
-  On concurrent conflict, automatically
-  try up to two alternative candidates.
-end note
-
-note bottom of UC_CancelTask
-  Cancelling a task also cancels its
-  non-final direct and indirect dependents.
-  Reserved resources are released.
-end note
-
-note bottom of UC_Complete
-  Only the assigned commander may complete.
-  Resources are released immediately.
-  Eligible dependent tasks become Ready.
-end note
-
-note bottom of UC_Fault
-  Faulty equipment becomes unavailable.
-  Dispatcher must allocate a replacement
-  for an active task.
-end note
-
-note bottom of UC_Close
-  Allowed only when every task is
-  Completed or Cancelled.
-  Rejected settlement prevents closure.
-end note
 
 @enduml
