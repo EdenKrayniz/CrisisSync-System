@@ -1,112 +1,72 @@
 @startuml
 left to right direction
 
-skinparam packageStyle rectangle
-skinparam shadowing false
-skinparam linetype polyline
-
-' ==========================================
-' PRIMARY ACTORS - HUMAN USERS
-' ==========================================
-
+' HUMAN ACTORS (left side)
 actor "System Administrator" as Admin
 actor "Logistics & Resources Officer" as Logistics
 actor "Dispatcher" as Dispatcher
 actor "Field Commander" as Commander
 actor "Field Crew Member" as Crew
 
-' ==========================================
+' NON-HUMAN ACTORS (right side)
+actor "National Clearing & Settlement System" as Clearing
+actor "System Clock / Scheduler" as Scheduler
+
 ' SYSTEM BOUNDARY
-' ==========================================
+rectangle "CrisisSync" as CrisisSync {
+  usecase "Log In" as UC_Login
+  usecase "Manage Accounts and Permissions" as UC_Accounts
+  usecase "Load Initial Data" as UC_LoadData
+  usecase "View Event History and Audit Log" as UC_Audit
 
-rectangle "CrisisSync System" {
+  usecase "View Reports" as UC_ViewReports
+  usecase "Generate Resource Utilization Report" as UC_Utilization
+  usecase "Generate SLA Report" as UC_SLA
+  usecase "Generate Monthly Reports" as UC_Monthly
 
-  package "Access & Administration" {
-    usecase "Log In" as UC_Login
-    usecase "Manage Accounts\nand Permissions" as UC_Accounts
-    usecase "Load Initial Data" as UC_LoadData
-    usecase "View Event History\nand Audit Log" as UC_Audit
-  }
+  usecase "Update Equipment Maintenance Status" as UC_Maintenance
+  usecase "Transfer Equipment Between Stations" as UC_Transfer
+  usecase "Update Crew Unavailability" as UC_Absence
 
-  package "Resource Management" {
-    usecase "Update Equipment\nMaintenance Status" as UC_Maintenance
-    usecase "Transfer Equipment\nBetween Stations" as UC_Transfer
-    usecase "Update Crew\nUnavailability" as UC_Absence
-  }
+  usecase "Open Event" as UC_Open
+  usecase "Cancel Event" as UC_CancelEvent
+  usecase "Build Task Tree" as UC_TaskTree
+  usecase "Modify Task Dependencies" as UC_ModDeps
+  usecase "Validate Task Dependencies" as UC_ValidateDeps
+  usecase "Reject Cyclic Dependency" as UC_RejectCycle
+  usecase "Cancel Task" as UC_CancelTask
+  usecase "Confirm Cascading Cancellation" as UC_Cascade
+  usecase "Close Event" as UC_Close
+  usecase "Process Billing Settlement" as UC_Settlement
+  usecase "Handle Settlement Rejection" as UC_SettlementFail
 
-  package "Event & Task Management" {
-    usecase "Open Event" as UC_Open
-    usecase "Cancel Event" as UC_CancelEvent
-    usecase "Build Task Tree" as UC_TaskTree
-    usecase "Modify Task\nDependencies" as UC_ModDeps
-    usecase "Validate Task\nDependencies" as UC_ValidateDeps
-    usecase "Cancel Task" as UC_CancelTask
-    usecase "Confirm Cascading\nCancellation" as UC_Cascade
-    usecase "Close Event" as UC_Close
-    usecase "Process Billing\nSettlement" as UC_Settlement
-    usecase "Handle Settlement\nRejection" as UC_SettlementFail
-  }
-
-  package "Allocation & Field Operations" {
-    usecase "Reserve Resource\nPackage" as UC_Reserve
-    usecase "Auto-Allocate\nResources" as UC_Auto
-    usecase "Handle Reservation\nFailure" as UC_ReserveFail
-    usecase "Replace Faulty\nEquipment" as UC_Replace
-    usecase "Track Real-Time\nEvent Status" as UC_Track
-    usecase "Report Task\nCompletion" as UC_Complete
-    usecase "Report Equipment\nFault" as UC_Fault
-    usecase "Report Shift Start\nand Availability" as UC_Shift
-    usecase "View Assigned\nTask Details" as UC_ViewTask
-  }
-
-  package "Reporting" {
-    usecase "Generate Monthly\nReports" as UC_Monthly
-    usecase "Generate Resource\nUtilization Report" as UC_Utilization
-    usecase "Generate SLA\nReport" as UC_SLA
-    usecase "View Reports" as UC_ViewReports
-  }
+  usecase "Reserve Resource Package" as UC_Reserve
+  usecase "Auto-Allocate Resources" as UC_Auto
+  usecase "Retry with Alternative Resource" as UC_Retry
+  usecase "Handle Reservation Failure" as UC_ReserveFail
+  usecase "Replace Faulty Equipment" as UC_Replace
+  usecase "Track Real-Time Event Status" as UC_Track
+  usecase "Report Task Completion" as UC_Complete
+  usecase "Report Equipment Fault" as UC_Fault
+  usecase "Report Shift Start and Availability" as UC_Shift
+  usecase "View Assigned Task Details" as UC_ViewTask
 }
 
-' ==========================================
-' SECONDARY ACTORS - EXTERNAL SYSTEMS
-' ==========================================
-
-actor "National Clearing &\nSettlement System" as Clearing
-actor "System Clock /\nScheduler" as Scheduler
-
-' ==========================================
-' AUTHENTICATION
-' ==========================================
-
+' HUMAN ACTOR ASSOCIATIONS (actor written first = actor on the left)
 Admin -- UC_Login
-Logistics -- UC_Login
-Dispatcher -- UC_Login
-Commander -- UC_Login
-Crew -- UC_Login
-
-' ==========================================
-' SYSTEM ADMINISTRATOR
-' ==========================================
-
 Admin -- UC_Accounts
 Admin -- UC_LoadData
 Admin -- UC_Audit
+Admin -- UC_ViewReports
 Admin -- UC_Utilization
 Admin -- UC_SLA
-Admin -- UC_ViewReports
 
-' ==========================================
-' LOGISTICS & RESOURCES OFFICER
-' ==========================================
-
+Logistics -- UC_Login
 Logistics -- UC_Maintenance
 Logistics -- UC_Transfer
 Logistics -- UC_Absence
 
-' ==========================================
-' DISPATCHER
-' ==========================================
-
+Dispatcher -- UC_Login
 Dispatcher -- UC_Open
 Dispatcher -- UC_CancelEvent
 Dispatcher -- UC_TaskTree
@@ -118,51 +78,34 @@ Dispatcher -- UC_Replace
 Dispatcher -- UC_Track
 Dispatcher -- UC_Close
 
-' ==========================================
-' FIELD COMMANDER
-' ==========================================
-
+Commander -- UC_Login
 Commander -- UC_Track
 Commander -- UC_Complete
 Commander -- UC_Fault
 
-' ==========================================
-' FIELD CREW MEMBER
-' ==========================================
-
+Crew -- UC_Login
 Crew -- UC_Shift
 Crew -- UC_ViewTask
 Crew -- UC_Fault
 
-' ==========================================
-' EXTERNAL SYSTEM ASSOCIATIONS
-' ==========================================
+' NON-HUMAN ACTOR ASSOCIATIONS (use case written first = actor on the right)
+' three dashes = longer line, pushes the actor past the boundary
+UC_Settlement --- Clearing
+UC_Monthly --- Scheduler
 
-UC_Settlement -right- Clearing
-UC_Monthly -right- Scheduler
-
-' ==========================================
-' MANDATORY BEHAVIOR - INCLUDE
-' ==========================================
-
+' INCLUDE (arrow: base -> included)
 UC_TaskTree ..> UC_ValidateDeps : <<include>>
 UC_ModDeps ..> UC_ValidateDeps : <<include>>
-
 UC_Close ..> UC_Settlement : <<include>>
+UC_Utilization <.. UC_Monthly : <<include>>
+UC_SLA <.. UC_Monthly : <<include>>
 
-UC_Monthly ..> UC_Utilization : <<include>>
-UC_Monthly ..> UC_SLA : <<include>>
-
-' ==========================================
-' CONDITIONAL BEHAVIOR - EXTEND
-' ==========================================
-
-UC_Auto ..> UC_Reserve : <<extend>>
-
-UC_ReserveFail ..> UC_Reserve : <<extend>>
-
-UC_Cascade ..> UC_CancelTask : <<extend>>
-
-UC_SettlementFail ..> UC_Settlement : <<extend>>
+' EXTEND (arrow: extension -> base)
+UC_Reserve <.. UC_Auto : <<extend>>
+UC_Reserve <.. UC_ReserveFail : <<extend>>
+UC_Auto <.. UC_Retry : <<extend>>
+UC_ValidateDeps <.. UC_RejectCycle : <<extend>>
+UC_CancelTask <.. UC_Cascade : <<extend>>
+UC_Settlement <.. UC_SettlementFail : <<extend>>
 
 @enduml
