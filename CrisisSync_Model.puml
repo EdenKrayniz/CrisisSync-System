@@ -1,106 +1,116 @@
 @startuml
-left to right direction
+' CrisisSync - Use Case model (Assignment 1)
+' Written for import into Visual Paradigm 18.1.
+' VP reads an association "A -- B" as B -> A, so every association is written
+' use-case-first for human actors and actor-first for non-human actors.
+' Layout is done in VP: Layout > Customized... > Hierarchical, Orientation: Left to Right.
 
-' HUMAN ACTORS (left side)
+' HUMAN ACTORS (left side of the boundary)
 actor "System Administrator" as Admin
 actor "Logistics & Resources Officer" as Logistics
 actor "Dispatcher" as Dispatcher
 actor "Field Commander" as Commander
 actor "Field Crew Member" as Crew
 
-' NON-HUMAN ACTORS (right side)
+' NON-HUMAN ACTORS (right side of the boundary)
 actor "National Clearing & Settlement System" as Clearing
 actor "System Clock / Scheduler" as Scheduler
 
 ' SYSTEM BOUNDARY
 rectangle "CrisisSync" as CrisisSync {
+  ' --- all users ---
   usecase "Log In" as UC_Login
+
+  ' --- System Administrator ---
   usecase "Manage Accounts and Permissions" as UC_Accounts
   usecase "Load Initial Data" as UC_LoadData
   usecase "View Event History and Audit Log" as UC_Audit
-
   usecase "View Reports" as UC_ViewReports
   usecase "Generate Resource Utilization Report" as UC_Utilization
   usecase "Generate SLA Report" as UC_SLA
-  usecase "Generate Monthly Reports" as UC_Monthly
 
+  ' --- Logistics & Resources Officer ---
   usecase "Update Equipment Maintenance Status" as UC_Maintenance
   usecase "Transfer Equipment Between Stations" as UC_Transfer
   usecase "Update Crew Unavailability" as UC_Absence
 
+  ' --- Dispatcher ---
   usecase "Open Event" as UC_Open
-  usecase "Cancel Event" as UC_CancelEvent
   usecase "Build Task Tree" as UC_TaskTree
   usecase "Modify Task Dependencies" as UC_ModDeps
-  usecase "Validate Task Dependencies" as UC_ValidateDeps
-  usecase "Reject Cyclic Dependency" as UC_RejectCycle
-  usecase "Cancel Task" as UC_CancelTask
-  usecase "Confirm Cascading Cancellation" as UC_Cascade
-  usecase "Close Event" as UC_Close
-  usecase "Process Billing Settlement" as UC_Settlement
-  usecase "Handle Settlement Rejection" as UC_SettlementFail
-
   usecase "Reserve Resource Package" as UC_Reserve
   usecase "Auto-Allocate Resources" as UC_Auto
-  usecase "Retry with Alternative Resource" as UC_Retry
-  usecase "Handle Reservation Failure" as UC_ReserveFail
   usecase "Replace Faulty Equipment" as UC_Replace
+  usecase "Cancel Task" as UC_CancelTask
+  usecase "Cancel Event" as UC_CancelEvent
+  usecase "Close Event" as UC_Close
   usecase "Track Real-Time Event Status" as UC_Track
+
+  ' --- Field Commander / Field Crew Member ---
   usecase "Report Task Completion" as UC_Complete
   usecase "Report Equipment Fault" as UC_Fault
   usecase "Report Shift Start and Availability" as UC_Shift
   usecase "View Assigned Task Details" as UC_ViewTask
+
+  ' --- included / extending use cases (no direct human actor) ---
+  usecase "Validate Task Dependencies" as UC_ValidateDeps
+  usecase "Reject Cyclic Dependency" as UC_RejectCycle
+  usecase "Handle Reservation Failure" as UC_ReserveFail
+  usecase "Retry with Alternative Resource" as UC_Retry
+  usecase "Confirm Cascading Cancellation" as UC_Cascade
+  usecase "Process Billing Settlement" as UC_Settlement
+  usecase "Handle Settlement Rejection" as UC_SettlementFail
+  usecase "Generate Monthly Reports" as UC_Monthly
 }
 
-' HUMAN ACTOR ASSOCIATIONS (actor written first = actor on the left)
-Admin -- UC_Login
-Admin -- UC_Accounts
-Admin -- UC_LoadData
-Admin -- UC_Audit
-Admin -- UC_ViewReports
-Admin -- UC_Utilization
-Admin -- UC_SLA
+' HUMAN ACTOR ASSOCIATIONS (solid line, no arrowheads)
+UC_Login -- Admin
+UC_Accounts -- Admin
+UC_LoadData -- Admin
+UC_Audit -- Admin
+UC_ViewReports -- Admin
+UC_Utilization -- Admin
+UC_SLA -- Admin
 
-Logistics -- UC_Login
-Logistics -- UC_Maintenance
-Logistics -- UC_Transfer
-Logistics -- UC_Absence
+UC_Login -- Logistics
+UC_Maintenance -- Logistics
+UC_Transfer -- Logistics
+UC_Absence -- Logistics
 
-Dispatcher -- UC_Login
-Dispatcher -- UC_Open
-Dispatcher -- UC_CancelEvent
-Dispatcher -- UC_TaskTree
-Dispatcher -- UC_ModDeps
-Dispatcher -- UC_CancelTask
-Dispatcher -- UC_Reserve
-Dispatcher -- UC_Auto
-Dispatcher -- UC_Replace
-Dispatcher -- UC_Track
-Dispatcher -- UC_Close
+UC_Login -- Dispatcher
+UC_Open -- Dispatcher
+UC_TaskTree -- Dispatcher
+UC_ModDeps -- Dispatcher
+UC_Reserve -- Dispatcher
+UC_Auto -- Dispatcher
+UC_Replace -- Dispatcher
+UC_CancelTask -- Dispatcher
+UC_CancelEvent -- Dispatcher
+UC_Close -- Dispatcher
+UC_Track -- Dispatcher
 
-Commander -- UC_Login
-Commander -- UC_Track
-Commander -- UC_Complete
-Commander -- UC_Fault
+UC_Login -- Commander
+UC_Track -- Commander
+UC_Complete -- Commander
+UC_Fault -- Commander
 
-Crew -- UC_Login
-Crew -- UC_Shift
-Crew -- UC_ViewTask
-Crew -- UC_Fault
+UC_Login -- Crew
+UC_Fault -- Crew
+UC_Shift -- Crew
+UC_ViewTask -- Crew
 
-' NON-HUMAN ACTOR ASSOCIATIONS (use case written first = actor on the right)
-' three dashes = longer line, pushes the actor past the boundary
-UC_Settlement --- Clearing
-UC_Monthly --- Scheduler
+' NON-HUMAN ACTOR ASSOCIATIONS (solid line, no arrowheads)
+Clearing -- UC_Settlement
+Scheduler -- UC_Monthly
 
-' INCLUDE (arrow: base -> included)
-UC_TaskTree ..> UC_ValidateDeps : <<include>>
-UC_ModDeps ..> UC_ValidateDeps : <<include>>
-UC_Close ..> UC_Settlement : <<include>>
+' INCLUDE (arrow points from the base use case to the included use case)
+UC_ValidateDeps <.. UC_TaskTree : <<include>>
+UC_ValidateDeps <.. UC_ModDeps : <<include>>
+UC_Settlement <.. UC_Close : <<include>>
 UC_Utilization <.. UC_Monthly : <<include>>
 UC_SLA <.. UC_Monthly : <<include>>
 
-' EXTEND (arrow: extension -> base)
+' EXTEND (arrow points from the extending use case to the base use case)
 UC_Reserve <.. UC_Auto : <<extend>>
 UC_Reserve <.. UC_ReserveFail : <<extend>>
 UC_Auto <.. UC_Retry : <<extend>>
