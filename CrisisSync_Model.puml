@@ -93,6 +93,7 @@ UC_Login -- Commander
 UC_Track -- Commander
 UC_Complete -- Commander
 UC_Fault -- Commander
+UC_ViewTask -- Commander
 
 UC_Login -- Crew
 UC_Fault -- Crew
