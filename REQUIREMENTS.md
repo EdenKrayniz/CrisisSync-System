@@ -3,23 +3,21 @@
 ## Group Information
 - Group Number:
 - Team Member 1:
-    - Name: joe abou ghannam
-    - Student ID:322470998
-    - Academic Email: joe.abou.ghannam@e.braude.ac.il
+  - Name: Joe Abou Ghannam
+  - Student ID: 322470998
+  - Academic Email: joe.abou.ghannam@e.braude.ac.il
 - Team Member 2:
-    - Name: eden krainits
-    - Student ID: 211589742
-    - Academic Email: eden.krainits@e.braude.ac.il
+  - Name: Eden Krainits
+  - Student ID: 211589742
+  - Academic Email: eden.krainits@e.braude.ac.il
 - Team Member 3:
-  - Name: dvir klein
+  - Name: Dvir Klein
   - Student ID: 318931169
   - Academic Email: dvir.klein@e.braude.ac.il
 - Team Member 4:
-  - Name: mosh ben shabat
+  - Name: Moshe Ben Shabat
   - Student ID: 206394793
   - Academic Email: moshe.ben.shabat@e.braude.ac.il
-
-
 
 ---
 
@@ -29,29 +27,29 @@
 
 | ID | Requirement |
 |----|-------------|
-| FR-01 |The system shall allow a Dispatcher to reserve a resource package for a task only when the task is in the Ready state. |
-| FR-02 |The system shall reserve all required resources atomically and reject the entire reservation if any required resource is unavailable. |
-| FR-03 |The system shall allow the assigned Field Commander to report task completion, transition the task to the Completed state, immediately release all resources allocated to it, and update dependent tasks to the Ready state when all their prerequisites are completed. |
+| FR-01 | The system shall allow a Dispatcher to reserve a resource package for a task only when the task is in the Ready state. |
+| FR-02 | The system shall reserve all required resources of the package in a single transaction; if any required resource is unavailable, the system shall reject the entire reservation, keep the task in the Ready state, display a failure message to the Dispatcher, and refresh the Dispatcher's screen to the current resource state. |
+| FR-03 | The system shall allow only the assigned Field Commander to report task completion, and shall then transition the task to the Completed state, record the completion time, and immediately release all resources allocated to it. |
+| FR-04 | When a task transitions to the Completed state, the system shall transition to the Ready state every dependent task whose prerequisites are all completed. |
 
 ### 1.2 SLA Report Generation
 
 | ID | Requirement |
 |----|-------------|
-| FR-04 |The system shall allow the System Administrator to generate an SLA report for a selected past month. |
-| FR-05 |The system shall calculate the average time from event opening to the completion of its last task, grouped by event type, in the SLA report. |
+| FR-05 | The system shall allow the System Administrator to generate an SLA report for a selected past month, and shall reject a request for the current month or a future month with an error message. |
+| FR-06 | The system shall calculate, for the events whose last task reached a final state in the selected month, the average time from event opening to the completion of its last task, grouped by event type, and shall store and display the report. |
+| FR-07 | If the event data cannot be retrieved from the database, the system shall store no SLA report, keep existing reports unchanged, and display an error message. |
 
 ---
 
-
 ## 2. Non-Functional Requirements (NFR)
 
-| ID | Requirement |
-|----|-------------|
-| NFR-01 | The system shall synchronize task and resource status updates to all connected clients within 2 seconds of a status change using server push. |
-| NFR-02 |The system shall reject 100% of unauthorized attempts by Field Commanders to access or complete tasks not assigned to them. |
-| NFR-03 |The system shall maintain 100% resource reservation consistency during concurrent reservation requests, ensuring that no resource is allocated to more than one active task simultaneously. |
-| NFR-04 |The system shall allow at least 90% of trained Dispatchers to complete a resource package reservation for a Ready task without assistance on their first attempt. |
-
+| ID | Category | Requirement | Measurement Method |
+|----|----------|-------------|--------------------|
+| NFR-01 | Performance | The system shall push task and resource status updates to all connected clients within 2 seconds of a status change (95th percentile) while 50 clients are connected. | Load test of 1,000 status changes; latency = client receipt time minus server commit time. |
+| NFR-02 | Security | The system shall reject 100% of attempts by Field Commanders to view or complete tasks not assigned to them. | Automated test covering every combination of Field Commander and task assignment. |
+| NFR-03 | Reliability | Under 100 simultaneous reservation requests for the same resource, repeated 1,000 times, the system shall produce zero double reservations and zero partial reservations. | Stress test followed by a database query that counts resources reserved for more than one task and partially reserved packages. |
+| NFR-04 | Usability | At least 90% of trained Dispatchers shall complete a resource package reservation for a Ready task on their first attempt without assistance. | Usability test with 20 trained Dispatchers. |
 
 ---
 
@@ -59,15 +57,17 @@
 
 | Requirement ID | Use Case | Acceptance Test ID |
 |----------------|----------|--------------------|
-| FR-01 |Reserve Resource Package |TC-01, TC-02 |
-| FR-02 |Reserve Resource Package |TC-01, TC-03 |
-| FR-03 |Report Task Completion |TC-04, TC-05 |
-| FR-04 |Generate SLA Report |TC-06, TC-07 |
-| FR-05 |Generate SLA Report |TC-08, TC-09 |
-| NFR-01 |Report Task Completion, Track Real-Time Event Status |TC-10 |
-| NFR-02 | Report Task Completion, View Assigned Task Details  |TC-11 |
-| NFR-03 |Reserve Resource Package |TC-12 |
-| NFR-04 | Reserve Resource Package |TC-13 |
+| FR-01 | Reserve Resource Package | TC-01, TC-02 |
+| FR-02 | Reserve Resource Package, Handle Reservation Failure | TC-01, TC-03 |
+| FR-03 | Report Task Completion | TC-04, TC-05 |
+| FR-04 | Report Task Completion | TC-04 |
+| FR-05 | Generate SLA Report | TC-06, TC-07 |
+| FR-06 | Generate SLA Report | TC-08, TC-09 |
+| FR-07 | Generate SLA Report | TC-10 |
+| NFR-01 | Report Task Completion, Track Real-Time Event Status | TC-11 |
+| NFR-02 | Report Task Completion, View Assigned Task Details | TC-12 |
+| NFR-03 | Reserve Resource Package | TC-13 |
+| NFR-04 | Reserve Resource Package | TC-14 |
 
 ---
 
@@ -76,6 +76,7 @@
 ### 4.1 Resource Reservation and Task Completion
 
 #### TC-01: Successful Reservation
+
 **Given** a task is in the Ready state
 And all required resources are available
 
@@ -96,7 +97,8 @@ And all required resources are available
 And the task shall remain in the Blocked state
 And all required resources shall remain available
 
-#### TC-03: Atomic Reservation Failure
+
+#### TC-03: Atomic Reservation Failure and Recovery
 
 **Given** a task is in the Ready state
 And one required resource is unavailable
@@ -107,6 +109,8 @@ And all other required resources are available
 **Then** the system shall reject the entire reservation
 And no resources from the requested package shall be reserved
 And the task shall remain in the Ready state
+And the Dispatcher shall see a failure message
+And the Dispatcher's screen shall be refreshed to the current resource state
 
 
 #### TC-04: Successful Task Completion
@@ -120,6 +124,7 @@ And all other prerequisites of the dependent task are completed
 **When** the assigned Field Commander reports task completion
 
 **Then** the system shall transition the task to the Completed state
+And the completion time shall be recorded
 And all allocated resources shall be released and become available
 And the dependent task shall transition to the Ready state
 
@@ -137,9 +142,7 @@ And the task shall remain in the Active state
 And all allocated resources shall remain reserved
 
 
-
 ### 4.2 SLA Report Generation
-
 
 #### TC-06: Successful SLA Report Generation
 
@@ -148,8 +151,8 @@ And a past month is selected
 
 **When** the System Administrator requests to generate an SLA report for the selected month
 
-**Then** the system shall generate the SLA report for the selected month
-And the report shall be available for the System Administrator to view
+**Then** the system shall generate and store the SLA report for the selected month
+And the report shall be displayed to the System Administrator
 
 
 #### TC-07: SLA Report Generation for an Invalid Month
@@ -187,51 +190,57 @@ And no completed events of a particular event type exist for that month
 And shall not display a misleading numerical average for that event type
 
 
+#### TC-10: Data Retrieval Failure and Recovery
+
+**Given** the System Administrator has selected a past month
+And the database connection fails during data retrieval
+
+**When** the System Administrator requests to generate the SLA report
+
+**Then** the system shall store no SLA report
+And previously stored reports shall remain unchanged
+And an error message shall be displayed
+
+
 ### 4.3 Non-Functional Acceptance Tests
 
+#### TC-11: Real-Time Status Synchronization
 
-#### TC-10: Real-Time Status Synchronization
+**Given** 50 clients are connected to the system
 
-**Given** multiple clients are connected to the system
-And a task is in the Active state
-And the task has allocated resources
+**When** 1,000 task and resource status changes are committed
 
-**When** the assigned Field Commander completes the task
-
-**Then** the system shall update the task status to Completed
-And release all allocated resources
-And synchronize the updated task status and resource availability to all connected clients using server push within 2 seconds
+**Then** at least 95% of the changes shall be received by every client within 2 seconds of the commit
 
 
-#### TC-11: Unauthorized Task Access Prevention
+#### TC-12: Unauthorized Task Access Prevention
 
-**Given** 100 unauthorized access attempts are made by Field Commanders to tasks not assigned to them
-And some attempts request to view task details
-And other attempts request to report task completion
+**Given** every combination of Field Commander and task assignment is generated
+And each Field Commander requests to view and to complete every task
 
 **When** the system processes these requests
 
-**Then** the system shall reject all 100 unauthorized attempts
+**Then** the system shall reject 100% of the requests for tasks not assigned to the requesting Field Commander
 And no unauthorized task details shall be disclosed
 And no task status or allocated resources shall be changed
 
 
-#### TC-12: Concurrent Resource Reservation Consistency
+#### TC-13: Concurrent Resource Reservation Consistency
 
-**Given** two tasks are in the Ready state
-And both tasks require the same non-shareable resource
+**Given** 100 tasks are in the Ready state
+And all of them require the same non-shareable resource
 And only one unit of that resource is available
-And two Dispatchers attempt to reserve the resource simultaneously
 
-**When** the system processes both reservation requests
+**When** 100 reservation requests for that resource are sent simultaneously
+And the test is repeated 1,000 times
 
-**Then** exactly one reservation shall succeed
-And the other reservation shall be rejected
-And the shared resource shall be allocated to only one task
-And no partial reservation shall remain for the rejected task
+**Then** in every repetition exactly one reservation shall succeed
+And all other reservations shall be rejected
+And the consistency query shall find zero resources reserved for more than one task
+And the consistency query shall find zero partially reserved packages
 
 
-#### TC-13: Resource Reservation Usability
+#### TC-14: Resource Reservation Usability
 
 **Given** 20 trained Dispatchers participate in a usability test
 And each Dispatcher is assigned a Ready task with all required resources available
