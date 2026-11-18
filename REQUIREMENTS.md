@@ -1,7 +1,7 @@
 # CrisisSync - Requirements and Acceptance Tests
 
 ## Group Information
-- Group Number:
+- Group Number: 17
 - Team Member 1:
   - Name: Joe Abou Ghannam
   - Student ID: 322470998
